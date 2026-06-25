@@ -1,0 +1,42 @@
+# Python and tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.venv/
+venv/
+
+# Local agent/editor state
+.agents/
+.claude/
+.codex/
+.vscode/
+.idea/
+
+# Generated populations and CFD cases
+genesis-batch/
+genesis-batch-test/
+generation_*/
+generated_population/
+generated_population_test/
+gen-*/
+
+# Generated reports, images, references, and helper tooling
+pics/
+ref/
+scripts/
+PARAMETER_REPORT.md
+
+# Local logs and excluded-data audit
+*.log
+combined_excluded_aero_cases.csv
+
+# Accidental local shell artifacts
+/cd
+/forgecad
+
+# OS files
+.DS_Store
+Thumbs.db

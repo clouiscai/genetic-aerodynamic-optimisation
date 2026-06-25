@@ -1,0 +1,68 @@
+{
+  "_comment": "Configuration for evolution.py. Run: python evolution.py --generation 0 (breeds generation_01 from genesis-batch results).",
+  "generations": {
+    "genesis_dir": "genesis-batch",
+    "generation_dir_pattern": "generation_{number:02d}",
+    "results_csv_name": "all_results_summary.csv",
+    "designs_per_generation": 10
+  },
+  "results_validity": {
+    "_comment": "A case row counts as valid only if it converged to the final time and its coefficients are physically sane (diverged runs show 1e+20-style garbage).",
+    "required_final_time": 300,
+    "max_abs_coefficient": 10.0,
+    "require_full_sweep": true,
+    "min_valid_cases": 5
+  },
+  "fitness": {
+    "_comment": "Weighted sum of min-max normalised metrics (each scaled 0..1 across eligible designs). Positive weight = higher metric is better. cl/cd/lift_to_drag/abs_cm are means over the valid height sweep; ground_effect_gain = -d(L/D)/d(height) from a least-squares fit (steeper L/D rise as the ground gets closer = bigger = better); span_per_ld = full span incl. winglet reach divided by mean L/D (compactness). *_at_lowest_height metrics are extra knobs, weight 0 by default.",
+    "weights": {
+      "cl": 1.0,
+      "cd": -1.7,
+      "lift_to_drag": 1.3,
+      "ground_effect_gain": 1.0,
+      "abs_cm": -0.7,
+      "span_per_ld": -0.8,
+      "ld_at_lowest_height": 0.2,
+      "cl_at_lowest_height": 0.2
+    },
+    "evaluation_height_m": null
+  },
+  "selection": {
+    "num_best": 2,
+    "num_runner_ups": 2,
+    "runner_up_strategy": "next_best",
+    "_runner_up_strategy_options": "next_best = ranks 3 and 4; diverse = from the next diverse_pool_size ranked designs, pick the 2 genetically furthest from the already-selected survivors",
+    "diverse_pool_size": 5
+  },
+  "breeding": {
+    "children_per_pair": 5,
+    "pairing": "random_disjoint",
+    "crossover_units": {
+      "airfoil": "whole",
+      "wing_pitch": "per_section",
+      "wing_horizontal": "per_section",
+      "wing_vertical": "per_section",
+      "wing_scale": "per_section",
+      "winglet": "per_gene"
+    },
+    "_crossover_units_options": "whole = the group is inherited intact from parent A or B (50/50); per_gene = every gene in the group is drawn from A or B independently (e.g. each winglet parameter separately); per_section = per-section array genes are mixed element-by-element (each section's slope/scale/pitch-change from A or B; slope arrays are smoothness-repaired afterwards), scalar genes in the group drawn independently"
+  },
+  "mutation": {
+    "rate": 0.10,
+    "scale": 0.20,
+    "_comment": "rate = per-gene probability (array genes: per element). scale = gaussian sigma as a fraction of each gene's configured range, clamped to bounds. Discrete genes (airfoil, pointy flag) re-draw with the same rate."
+  },
+  "guards": {
+    "validate_children": true,
+    "max_attempts_per_child": 200,
+    "warn_thin_winglet": true,
+    "reject_thin_winglet": false,
+    "min_winglet_normal_thickness_m": 0.0025
+  },
+  "output": {
+    "random_seed": 4242,
+    "export_stl": true,
+    "render_previews": false,
+    "generate_openfoam_cases": true
+  }
+}
