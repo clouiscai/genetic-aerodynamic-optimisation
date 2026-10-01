@@ -9,7 +9,6 @@ from .exporter import ExportOptions, export_design, validate_forgecad_model
 from .geometry_generator import write_design_files
 from .population_generator import PopulationGenerator, validate_design, write_population_manifest
 from .report import build_parameter_report
-from .slider_design import build_manual_design, build_slider_design
 
 
 def main() -> None:
@@ -37,12 +36,6 @@ def main() -> None:
     config.output_dir.mkdir(parents=True, exist_ok=True)
     (config.output_dir / "PARAMETER_REPORT.md").write_text(
         build_parameter_report(config) + "\n", encoding="utf-8"
-    )
-    (config.output_dir / "interactive_genome.forge.js").write_text(
-        build_slider_design(config), encoding="utf-8"
-    )
-    (config.output_dir / "manual_genome.forge.js").write_text(
-        build_manual_design(config), encoding="utf-8"
     )
     generator = PopulationGenerator(config)
     accepted_designs = []

@@ -9,7 +9,10 @@ __pycache__/
 venv/
 
 # Local agent/editor state
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/adapt-evolution-workflow/
 .claude/
 .codex/
 .vscode/

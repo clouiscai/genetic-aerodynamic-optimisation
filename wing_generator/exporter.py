@@ -54,7 +54,7 @@ def validate_forgecad_model(design_dir: Path, config: GeneratorConfig) -> Comman
 
 def export_design(design_dir: Path, config: GeneratorConfig, options: ExportOptions) -> None:
     script = design_dir / "geometry.forge.js"
-    forgecad = _forgecad_command()
+    forgecad = _forgecad_command() if options.export_step or options.render_preview else None
 
     if options.export_stl:
         stl = design_dir / "geometry.stl"

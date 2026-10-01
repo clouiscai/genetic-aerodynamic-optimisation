@@ -1,7 +1,7 @@
 """Human-readable report of the design genome and all tunable settings.
 
 Generated directly from :class:`~wing_generator.config.GeneratorConfig`, so it
-always reflects the live bounds, evolution settings and fitness weights.
+reflects the live geometry bounds and seed population settings.
 """
 
 from __future__ import annotations
@@ -17,8 +17,6 @@ def build_parameter_report(config: GeneratorConfig) -> str:
     g = config.genes
     gs = config.gene_space
     v = config.validation
-    evo = config.evolution
-    fit = config.fitness
 
     def rng(bounds) -> str:
         lo, hi = bounds.as_tuple()
@@ -31,9 +29,9 @@ def build_parameter_report(config: GeneratorConfig) -> str:
     add("")
     add(
         "Each wing is a **genome** (`wing_generator/genome.py`) decoded into geometry. "
-        "The evolutionary optimiser will mutate and recombine these genes; the CFD "
-        "**survival test** (not yet implemented) will score them. Everything below is "
-        "tuned in `wing_generator/config.py`. Lengths are metres, angles degrees."
+        "The evolutionary optimiser mutates and recombines these genes after CFD evaluation. "
+        "Geometry settings below are tuned in `wing_generator/config.py`; selection "
+        "and fitness weights live in the root `config.json`. Lengths are metres, angles degrees."
     )
     add("")
 
@@ -117,42 +115,15 @@ def build_parameter_report(config: GeneratorConfig) -> str:
     add(f"| max winglet sweep / dihedral / scale step | {v.wingtip_max_horizontal_delta_m_per_section:g} m / {v.wingtip_max_vertical_delta_m_per_section:g} m / {v.wingtip_max_scale_delta_per_section:g} |")
     add("")
 
-    # ---- Evolution (not active yet) ----------------------------------------
-    add("## 5. Evolution settings — *defined, not active yet*")
+    add("## 5. Seed population")
     add("")
-    add("Wired in after review, once the CFD survival test exists.")
+    add(f"- Requested designs: {config.num_designs}")
+    add(f"- Random seed: {config.random_seed}")
     add("")
-    add("| Setting | Value |")
-    add("| --- | --- |")
-    add(f"| `population_size` | {evo.population_size} |")
-    add(f"| `generations` | {evo.generations} |")
-    add(f"| `elitism_fraction` | {evo.elitism_fraction:g} |")
-    add(f"| `crossover_rate` (random assortment) | {evo.crossover_rate:g} |")
-    add(f"| `mutation_rate` | {evo.mutation_rate:g} |")
-    add(f"| `mutation_scale` | {evo.mutation_scale:g} |")
-    add(f"| `tournament_size` | {evo.tournament_size} |")
-    add("")
-    add("Gene-group dominance weights (relative inheritance during assortment):")
-    add("")
-    add("| Gene group | Weight |")
-    add("| --- | --- |")
-    for group, weight in evo.gene_group_dominance.items():
-        add(f"| `{group}` | {weight:g} |")
+    add("Selection, fitness weights and breeding are implemented in "
+        "`wing_generator/evolution.py` and configured in the root `config.json`.")
     add("")
 
-    # ---- Fitness (CFD survival test, not implemented) ----------------------
-    add("## 6. Fitness / CFD survival test — *not implemented yet*")
-    add("")
-    add(
-        "The CFD evaluation is the next stage (after review). These weights define how "
-        f"its metrics combine into one score (maximize = {fit.maximize})."
-    )
-    add("")
-    add("| Metric | Weight |")
-    add("| --- | --- |")
-    for metric, weight in fit.metric_weights.items():
-        add(f"| `{metric}` | {weight:g} |")
-    add("")
     add("_Generated from `GeneratorConfig`; edit `config.py` and re-run to update._")
     add("")
 

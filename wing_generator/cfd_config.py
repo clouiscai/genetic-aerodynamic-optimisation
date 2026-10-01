@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -27,7 +28,6 @@ class RefinementSettings:
     top_m: float = 0.55
     back_m: float = 0.75
     base_cell_size_m: float = 0.16
-    target_refined_to_base_ratio: float = 5.0
     refinement_box_level: int = 3
     # Thin ground-hugging band under the wing, refined finer than the box so the
     # ground prism layers can extrude on cells comparable to the layer stack.
@@ -47,17 +47,9 @@ class RefinementSettings:
 
 @dataclass(frozen=True)
 class BoundaryLayerSettings:
-    """Near-wall layer settings.
+    """Cell-relative snappyHexMesh layers on the wing and moving ground."""
 
-    Wing and ground use snappyHexMesh prism layers following the OpenFOAM
-    motorBike tutorial pattern, but with absolute first-layer heights for the
-    wing y+ target.
-    """
-
-    # Absolute first (near-wall) cell height per patch (snappy relativeSizes false)
-    # → directly sets y+ (nut = nutUSpaldingWallFunction, valid at any y+).
-    # wing 1.5e-5 → y+ ~ 20; ground coarser (less critical, moving wall).
-    first_layer_height_m: float = 0.000015
+    # Used to size the ground refinement band, not to set the first prism height.
     ground_first_layer_height_m: float = 0.0003
     growth_rate: float = 1.12
     # Cell-relative layer settings used by the motorBike-derived generator.
@@ -66,8 +58,6 @@ class BoundaryLayerSettings:
     n_layers: int = 7
     final_layer_fraction: float = 0.2
     min_thickness_fraction: float = 0.001
-    ground_layers_from_block_mesh: bool = False
-    snappy_ground_layers: bool = True
 
 
 @dataclass(frozen=True)
@@ -97,15 +87,23 @@ class SolverSettings:
         return self.turbulent_ke**0.5 / (beta_star**0.25 * self.turbulent_length_scale_m)
 
 
+def default_reference_case_dir() -> Path:
+    explicit = os.environ.get("OPENFOAM_REFERENCE_CASE")
+    if explicit:
+        return Path(explicit).expanduser()
+    tutorials = os.environ.get("FOAM_TUTORIALS")
+    if tutorials:
+        return Path(tutorials) / "incompressible" / "simpleFoam" / "motorBike"
+    return Path("ref") / "motorBike"
+
+
 @dataclass(frozen=True)
 class OpenFoamCaseConfig:
     """Inputs for generating OpenFOAM ground-effect cases."""
 
     population_dir: Path = Path("genesis-batch")
     output_dir: Path = Path("genesis-batch/run")
-    reference_case_dir: Path = Path(
-        "ref/motorBike"
-    )
+    reference_case_dir: Path = field(default_factory=default_reference_case_dir)
     # Ground plane z values. The wing/root reference remains around z=0; a value
     # of -0.4 means the ground is 0.4 m below the reference, matching the example.
     ground_clearances_m: tuple[float, ...] = (-0.2, -0.4, -0.6, -0.8, -1.0)

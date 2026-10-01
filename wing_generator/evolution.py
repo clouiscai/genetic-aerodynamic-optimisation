@@ -41,7 +41,7 @@ import json
 import math
 import random
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -50,7 +50,7 @@ from .config import DEFAULT_CONFIG, GeneratorConfig
 from .exporter import ExportOptions, export_design
 from .genome import WingGenome, decode_genome, genome_fingerprint
 from .geometry_generator import write_design_files
-from .motorbike_case_generator import generate_motorbike_cases
+from .motorbike_case_generator import generate_motorbike_cases, validate_reference_case
 from .population_generator import validate_design, winglet_stations, write_population_manifest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -155,7 +155,8 @@ def _row_is_valid(row: dict[str, str], validity: dict[str, Any]) -> bool:
         return False
     limit = float(validity["max_abs_coefficient"])
     return (
-        final_time >= float(validity["required_final_time"])
+        math.isfinite(final_time)
+        and final_time >= float(validity["required_final_time"])
         and all(math.isfinite(v) for v in (cd, cl, cm))
         and abs(cd) < limit
         and abs(cl) < limit
@@ -555,6 +556,8 @@ def breed_generation(
     select_only: bool = False,
     force: bool = False,
     seed: int | None = None,
+    reference_case_dir: Path | None = None,
+    n_subdomains: int | None = None,
 ) -> None:
     src_dir = generation_dir(source_generation, cfg)
     designs = load_designs(src_dir)
@@ -569,6 +572,15 @@ def breed_generation(
 
     next_generation = source_generation + 1
     out_dir = generation_dir(next_generation, cfg)
+    case_config = OpenFoamCaseConfig(population_dir=out_dir, output_dir=out_dir / "run")
+    if reference_case_dir is not None:
+        case_config = replace(case_config, reference_case_dir=reference_case_dir)
+    if n_subdomains is not None:
+        if n_subdomains < 1:
+            raise ValueError("The core count must be at least 1.")
+        case_config = replace(case_config, solver=replace(case_config.solver, n_subdomains=n_subdomains))
+    if cfg["output"]["generate_openfoam_cases"]:
+        validate_reference_case(case_config.reference_case_dir)
     per_gen = int(cfg["generations"]["designs_per_generation"])
     pairs_needed = len(survivors) // 2
     children_per_pair = int(cfg["breeding"]["children_per_pair"])
@@ -626,16 +638,16 @@ def breed_generation(
             )
             child_number += 1
 
-    write_population_manifest(out_dir, child_designs, config)
+    write_population_manifest(
+        out_dir,
+        child_designs,
+        config.with_overrides(num_designs=per_gen, output_dir=out_dir, random_seed=base_seed),
+    )
     _write_reports(out_dir, source_generation, scores, survivors, pairs, breeding_records, base_seed, cfg)
 
     if cfg["output"]["generate_openfoam_cases"]:
         print("\nGenerating OpenFOAM cases (same settings as the genesis batch)...")
-        case_config = OpenFoamCaseConfig(population_dir=out_dir, output_dir=out_dir / "run")
         cases = generate_motorbike_cases(case_config)
-        collector = generation_dir(0, cfg) / "run" / "collect_results.py"
-        if collector.exists():
-            shutil.copy2(collector, out_dir / "run" / "collect_results.py")
         print(f"Generated {len(cases)} OpenFOAM cases in {out_dir / 'run'}")
 
     print(f"\nGeneration {next_generation:02d} written to {out_dir}")
@@ -801,6 +813,8 @@ def main() -> None:
     parser.add_argument("--select-only", action="store_true", help="Print the selection table and exit; write nothing.")
     parser.add_argument("--force", action="store_true", help="Overwrite the output generation folder if it exists.")
     parser.add_argument("--seed", type=int, default=None, help="Override the breeding RNG seed.")
+    parser.add_argument("--reference-case", type=Path, help="Path to the OpenFOAM v2412 motorBike tutorial.")
+    parser.add_argument("--cores", type=int, help="Parallel ranks per case (default: cfd_config.py).")
     args = parser.parse_args()
 
     cfg = load_evolution_config(args.config)
@@ -810,6 +824,8 @@ def main() -> None:
         select_only=args.select_only,
         force=args.force,
         seed=args.seed,
+        reference_case_dir=args.reference_case,
+        n_subdomains=args.cores,
     )
 
 

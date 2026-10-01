@@ -1,23 +1,8 @@
-"""Central configuration — the single file you edit by hand.
+"""Geometry, genome bounds, seed population and CAD settings.
 
-Everything the system does is driven from :class:`GeneratorConfig`:
-
-* **Fixed airframe constants** (``WING_SPAN_M``, ``ROOT_CHORD_M``) — never genes.
-* **Gene bounds** (:class:`GeneBounds`) — the search space the population generator
-  samples and the evolutionary process will later mutate. Tighten a bound to
-  constrain that gene; e.g. shrinking the *slope* bounds limits how many inflection
-  points a wing curve can develop.
-* **Gene space** (:class:`GeneSpace`) — discrete/structural choices (airfoils, pointy
-  probability).
-* **Validation** (:class:`ValidationSettings`) — geometry-quality guards.
-* **Evolution** (:class:`EvolutionConfig`) — population size, dominance weighting,
-  assortment/mutation. *Defined now, not executed yet* (wired in after review).
-* **Fitness** (:class:`FitnessConfig`) — how CFD "survival test" metrics combine.
-  *The CFD itself is intentionally not implemented yet.*
-* **ForgeCAD** (:class:`ForgeCadSettings`) — CAD/preview CLI options.
-
-See ``genome.py`` for how these genes are decoded into a wing, and
-``PARAMETER_REPORT.md`` (generated each run) for a human-readable gene list.
+Selection, fitness weights and breeding are configured in the root config.json.
+OpenFOAM case settings live in cfd_config.py. Generated PARAMETER_REPORT.md files
+describe the geometry settings used for a seed population.
 """
 
 from __future__ import annotations
@@ -136,56 +121,6 @@ class ValidationSettings:
 
 
 @dataclass(frozen=True)
-class EvolutionConfig:
-    """Settings for the evolutionary loop.
-
-    NOT executed yet — these are defined now so the genome, batches and reports are
-    ready for the optimiser that follows the CFD survival test (after review).
-    """
-
-    population_size: int = 10
-    generations: int = 0                 # 0 = generate the initial population only
-    elitism_fraction: float = 0.10        # fittest fraction copied unchanged
-    crossover_rate: float = 0.70          # chance two parents' genes are assorted
-    mutation_rate: float = 0.15           # per-gene mutation probability
-    mutation_scale: float = 0.10          # mutation step as a fraction of each gene's range
-    tournament_size: int = 3              # selection pressure
-    # Relative "dominance" weight of each gene group during crossover/assortment.
-    # Higher weight ⇒ that group is more likely to be inherited intact.
-    gene_group_dominance: dict[str, float] = field(
-        default_factory=lambda: {
-            "airfoil": 1.0,
-            "wing_pitch": 1.0,
-            "wing_horizontal": 1.0,
-            "wing_vertical": 1.0,
-            "wing_scale": 1.0,
-            "winglet": 1.0,
-        }
-    )
-
-
-@dataclass(frozen=True)
-class FitnessConfig:
-    """How CFD 'survival test' metrics combine into one fitness score.
-
-    The CFD evaluation itself is intentionally NOT implemented yet (it is the next
-    stage, after review). These weights are the contract the survival test will use.
-    """
-
-    # Weighted sum of (normalised) metrics. Positive weight rewards, negative penalises.
-    metric_weights: dict[str, float] = field(
-        default_factory=lambda: {
-            "lift_to_drag": 1.0,
-            "lift": 0.0,
-            "drag": -1.0,
-            "structural_mass": 0.0,
-            "stall_margin": 0.0,
-        }
-    )
-    maximize: bool = True  # higher weighted score = fitter
-
-
-@dataclass(frozen=True)
 class ForgeCadSettings:
     """ForgeCAD CLI settings."""
 
@@ -235,8 +170,6 @@ class GeneratorConfig:
     genes: GeneBounds = field(default_factory=GeneBounds)
     gene_space: GeneSpace = field(default_factory=GeneSpace)
     validation: ValidationSettings = field(default_factory=ValidationSettings)
-    evolution: EvolutionConfig = field(default_factory=EvolutionConfig)
-    fitness: FitnessConfig = field(default_factory=FitnessConfig)
     forgecad: ForgeCadSettings = field(default_factory=ForgeCadSettings)
 
     @property
