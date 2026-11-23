@@ -229,3 +229,10 @@ python -m unittest discover -s tests -v
 The tests use temporary designs, a small template fixture and synthetic
 coefficients. They exercise generation, portable case preparation, collection,
 filtering and breeding without launching CAD or CFD.
+
+## License
+
+The original project code and documentation are licensed under the [MIT License](LICENSE).
+The airfoil coordinates embedded in `wing_generator/airfoils.py` come from the
+[UIUC Airfoil Coordinates Database](https://m-selig.ae.illinois.edu/ads/coord_database.html)
+and are outside the scope of this license grant.
